@@ -1,33 +1,36 @@
+import configparser
 import pymysql
 import logging
+
+from module.custom_log import CustomLog
 
 
 class Connection:
     def __init__(self):
         self.conn = None
+        self.cur = None
 
         self.config = configparser.ConfigParser()
         self.config.read('../config/config.ini')
 
-        logging.basicConfig(level=logging.INFO,
-                            format='%(asctime)s - %(levelname)s - %(message)s',
-                            filename=self.config['log']['log_path'],
-                            filemode='a')
+        # 로깅 설정
+        self.logger = logging.getLogger()
 
-        logging.info('Connecting mysql database')
+        self.logger.info('Connecting mysql database')
         self.mysql_connect()
+
 
     def mysql_connect(self):
         host = self.config['db']['host']
-        port = self.config['db']['port']
+        port = int(self.config['db']['port'])
         dbname = self.config['db']['database']
         user = self.config['db']['user']
         password = self.config['db']['password']
 
-        logging.info('mysql info - Host: {}, Port: {}, User: {}, Dbname: {}'.format(host, port, user, dbname))
+        self.logger.info('mysql info - Host: {}, Port: {}, User: {}, Dbname: {}'.format(host, port, user, dbname))
 
         try:
-            conn = pymysql.connect(
+            self.conn = pymysql.connect(
                 host=host,
                 port=port,
                 user=user,
@@ -36,16 +39,24 @@ class Connection:
                 charset='utf8mb4'
             )
 
-            cur = conn.cursor()
-            cur.execute("select version()")
+            self.cur = self.conn.cursor()
+            self.cur.execute("select version()")
 
-            rows = cur.fetchall()
-            cur.close()
-            conn.close()
-            logging.info(rows)
+            rows = self.cur.fetchall()
+            self.logger.info('mysql version: ' + rows[0][0])
 
         except Exception as e:
-            logging.error("Error while fetching Schema")
-            logging.error(e)
+            self.logger.error("Error while fetching Schema")
+            self.logger.error(e)
+
+    def mysql_close(self):
+        self.cur.close()
+        self.conn.close()
+        self.logger.info("Closing mysql connection")
 
 
+if __name__ == "__main__":
+    CustomLog()
+
+    c = Connection()
+    c.mysql_close()
