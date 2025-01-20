@@ -11,10 +11,9 @@ class Connection(Common):
         self.logger = self.get_logger()
         self.config = self.get_config()
 
-        self.logger.info('Connecting mysql database')
-        self.mysql_connect()
-
     def mysql_connect(self):
+        self.logger.info('Connecting mysql database')
+
         host = self.config['db']['host']
         port = int(self.config['db']['port'])
         dbname = self.config['db']['database']
@@ -30,7 +29,8 @@ class Connection(Common):
                 user=user,
                 password=password,
                 db=dbname,
-                charset='utf8mb4'
+                charset='utf8mb4',
+                init_command='set innodb_strict_mode = 0'
             )
 
             self.cur = self.conn.cursor()
@@ -43,12 +43,22 @@ class Connection(Common):
             self.logger.error("Error while fetching Schema")
             self.logger.error(e)
 
+    def mysql_execute(self, sql):
+        self.cur.execute(sql)
+
+    def mysql_fetchall(self):
+        return self.cur.fetchall
+
     def mysql_close(self):
+        self.logger.info("Closing mysql connection")
         self.cur.close()
         self.conn.close()
-        self.logger.info("Closing mysql connection")
+
+    def mysql_commit(self):
+        self.conn.commit()
 
 
 if __name__ == "__main__":
     c = Connection()
+    c.mysql_connect()
     c.mysql_close()

@@ -1,21 +1,13 @@
-import codecs
-import configparser
-import logging
 import glob
 import os
-from module.custom_log import CustomLog
+
+from module.common import Common
 
 
-class Parser:
+class Parser(Common):
     def __init__(self):
-        # 로깅 설정
-        self.logger = logging.getLogger()
-
-        self.config = configparser.ConfigParser()
-        config_path = os.path.join(os.path.dirname(__file__), "../config/config.ini")
-        self.config.read(config_path, encoding='utf-8')
-
-        self.conf = self.config['info']
+        self.logger = self.get_logger()
+        self.conf = self.get_config()['info']
 
     def get_files(self, name):
         try:
@@ -37,13 +29,38 @@ class Parser:
             self.logger.error(f"Error while getting files: {e}")
             exit(1)
 
+    def get_columns(self, file_path):
+        with open(file_path, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+
+        variables = []
+        for line in lines:
+            if "|" in line:
+                parts = [part.strip() for part in line.split('|') if part.strip()]
+                if len(parts) == 2 and parts[0].lower() != "variable_name":
+                    variables.append(parts[0])
+
+        return variables
+
+    def parse_file(self):
+        with open(file_path, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+
+        columns = {}
+        for line in lines:
+            if "|" in line:
+                parts = [part.strip() for part in line.split('|') if part.strip()]
+                if len(parts) == 2 and parts[0].lower() != "variable_name":
+                    columns[parts[0]] = parts[1]
+        return columns
+
     def global_status_parsing(self):
         file_list = self.get_files()
 
 
 if __name__ == "__main__":
-    CustomLog()
     parser = Parser()
-    files = parser.get_files('global_status_path')
-    print(files)
+    # result = parser.get_files('global_status_path')
+    result = parser.get_columns('C:/Users/USER/Desktop/work/MySQL_정밀진단/status_log_bs/status_log/global_status\\20241218\\global_status.202412181430')
+    print(result)
 
