@@ -1,24 +1,18 @@
-import configparser
 import pymysql
-import logging
 
-from module.custom_log import CustomLog
+from module.common import Common
 
 
-class Connection:
+class Connection(Common):
     def __init__(self):
         self.conn = None
         self.cur = None
 
-        self.config = configparser.ConfigParser()
-        self.config.read('../config/config.ini')
-
-        # 로깅 설정
-        self.logger = logging.getLogger()
+        self.logger = self.get_logger()
+        self.config = self.get_config()
 
         self.logger.info('Connecting mysql database')
         self.mysql_connect()
-
 
     def mysql_connect(self):
         host = self.config['db']['host']
@@ -56,7 +50,5 @@ class Connection:
 
 
 if __name__ == "__main__":
-    CustomLog()
-
     c = Connection()
     c.mysql_close()
