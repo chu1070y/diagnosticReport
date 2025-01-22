@@ -23,6 +23,7 @@ class Main(Common):
 
         db_work = DBwork()
         db_work.create_status_table(status_filelist)
+        db_work.create_graph_table()
 
         ##################################### 3. 파일 파싱 및 데이터 insert
         self.logger.info("Starting parsing & insert --- global status")
