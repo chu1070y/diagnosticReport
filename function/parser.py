@@ -12,10 +12,10 @@ class Parser(Common):
     def get_files(self, name):
         try:
             path = self.conf['path'].get(name, None)
-            self.logger.info('The global status path: ' + path)
+            self.logger.info(f'The {name} path: {path}')
 
             if not path:
-                self.logger.error("global_status_path is not defined in config.ini")
+                self.logger.error(f"{name} is not defined in config.ini")
                 exit(1)
 
             # 하위 모든 파일 검색

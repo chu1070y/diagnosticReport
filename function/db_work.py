@@ -1,3 +1,6 @@
+import os
+import re
+
 from config.calculate import calculate_params_list
 from function.parser import Parser
 from module.common import Common
@@ -57,7 +60,7 @@ class DBwork(Common):
         self.db.mysql_execute(create_table_sql)
         self.db.mysql_commit()
 
-    def create_memory_table(self, file_list):
+    def create_memory_table(self):
         table_name = self.report_conf['memory_table_name']
 
         self.logger.info('table info ---> db_name: {}, table_name: {}'.format(self.db_name, table_name))
@@ -70,7 +73,7 @@ class DBwork(Common):
         create_table_sql = f"""
         CREATE TABLE `{self.db_name}`.`{table_name}` (
           id varchar(12) primary key,
-          {self.report_conf['memory_graph_params']}
+          {self.report_conf['memory_graph_params']} float
         );
         """
 
@@ -121,6 +124,38 @@ class DBwork(Common):
 
         self.db.mysql_execute(insert_sql, tuple(values))
         self.db.mysql_commit()
+
+    def insert_memory(self, filelist):
+        table_name = self.report_conf['memory_table_name']
+        memory_data = {}
+
+        for path in filelist:
+            if os.path.isfile(path):
+                try:
+                    filename = os.path.basename(path)
+                    with open(path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+                    memory_data[re.search(r'(\d+)$', filename).group(1)] = content
+                except Exception as e:
+                    self.logger.error(f"Error reading file {path}: {e}")
+            else:
+                self.logger.error(f"Invalid file path: {path}")
+
+        items = list(memory_data.items())
+        values = [(k, float(v)) for k, v in items]
+        placeholders = ", ".join(["%s"] * len(values[0]))
+
+        insert_sql = f"INSERT INTO {self.db_name}.{table_name} (id, {self.report_conf['memory_graph_params']}) VALUES ({placeholders})"
+
+        self.db.mysql_executemany(insert_sql, values)
+        self.db.mysql_commit()
+
+    def insert_graph_data(self, filelist):
+        # 1. 누적값 계산
+        sql = ''
+
+        # 2. 계산값
+        pass
 
     def __del__(self):
         self.db.mysql_close()

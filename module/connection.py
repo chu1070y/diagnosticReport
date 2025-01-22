@@ -56,6 +56,9 @@ class Connection(Common):
         else:
             self.cur.execute(sql, params)
 
+    def mysql_executemany(self, sql, params=None):
+        self.cur.executemany(sql, params)
+
     def mysql_fetchall(self):
         return self.cur.fetchall
 
