@@ -4,6 +4,13 @@ from module.common import Common
 
 
 class Connection(Common):
+    def __new__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            instance = super().__new__(cls)
+            cls._instances[cls] = instance
+            cls._initialize()
+        return cls._instances[cls]
+
     def __init__(self):
         self.conn = None
         self.cur = None
@@ -43,8 +50,11 @@ class Connection(Common):
             self.logger.error("Error while fetching Schema")
             self.logger.error(e)
 
-    def mysql_execute(self, sql):
-        self.cur.execute(sql)
+    def mysql_execute(self, sql, params=None):
+        if params is None:
+            self.cur.execute(sql)
+        else:
+            self.cur.execute(sql, params)
 
     def mysql_fetchall(self):
         return self.cur.fetchall

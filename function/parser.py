@@ -7,11 +7,11 @@ from module.common import Common
 class Parser(Common):
     def __init__(self):
         self.logger = self.get_logger()
-        self.conf = self.get_config()['info']
+        self.conf = self.get_config()
 
     def get_files(self, name):
         try:
-            path = self.conf.get(name, None)
+            path = self.conf['path'].get(name, None)
             self.logger.info('The global status path: ' + path)
 
             if not path:
@@ -42,7 +42,7 @@ class Parser(Common):
 
         return variables
 
-    def parse_file(self):
+    def parse_status(self, file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
 
@@ -54,13 +54,12 @@ class Parser(Common):
                     columns[parts[0]] = parts[1]
         return columns
 
-    def global_status_parsing(self):
-        file_list = self.get_files()
-
 
 if __name__ == "__main__":
     parser = Parser()
     # result = parser.get_files('global_status_path')
-    result = parser.get_columns('C:/Users/USER/Desktop/work/MySQL_정밀진단/status_log_bs/status_log/global_status\\20241218\\global_status.202412181430')
+    # result = parser.get_columns('C:/Users/USER/Desktop/work/MySQL_정밀진단/status_log_bs/status_log/global_status\\20241218\\global_status.202412181430')
+    result = parser.parse_status('C:/Users/USER/Desktop/work/MySQL_정밀진단/status_log_bs/status_log/global_status\\20241218\\global_status.202412181430')
     print(result)
+
 
