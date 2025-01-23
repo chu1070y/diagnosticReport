@@ -41,7 +41,7 @@ class Main(Common):
 
         ##################################### 4. 데이터 가공
         self.logger.info("Let's make a graph data")
-        db_work.insert_graph_data(memory_filelist)
+        db_work.insert_graph_data()
 
         ##################################### 5. 데이터 excel 파일로 추출
 

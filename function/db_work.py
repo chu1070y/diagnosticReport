@@ -1,7 +1,7 @@
 import os
 import re
 
-from config.calculate import calculate_params_list
+from config import calculate
 from function.parser import Parser
 from module.common import Common
 from module.connection import Connection
@@ -18,6 +18,8 @@ class DBwork(Common):
         self.parser = Parser()
 
         self.db_name = self.report_conf['db_name']
+
+        self.status_columns = None
 
     def create_status_table(self, file_list: list):
         table_name = self.report_conf['status_table_name']
@@ -40,13 +42,13 @@ class DBwork(Common):
 
         ########################################### 첫 status 파일 읽어서 컬럼 추출
         self.logger.info('Reading status file...')
-        columns = self.parser.get_columns(file_list[0])
+        self.status_columns = self.parser.get_columns(file_list[0])
 
-        self.logger.info(f'Count global status parameter: {len(columns)}')
+        self.logger.info(f'Count global status parameter: {len(self.status_columns)}')
 
         ########################################### 추출된 컬럼 이용해서 테이블 생성
         # column_definitions = [f"`{column}` VARCHAR(255)" for column in columns]
-        column_definitions = [f"`{column}` text" for column in columns]
+        column_definitions = [f"`{column}` text" for column in self.status_columns]
         column_definitions_str = ",\n  ".join(column_definitions)
         create_table_sql = f"""
         CREATE TABLE `{self.db_name}`.`{table_name}` (
@@ -88,8 +90,8 @@ class DBwork(Common):
         columns = self.report_conf['status_graph_params'].split(',')
         if self.report_conf.get('memory_graph_params') is not None:
             columns.append(self.report_conf['memory_graph_params'])
-        if len(calculate_params_list) != 0:
-            columns += calculate_params_list
+        if len(calculate.calculate_params_list) != 0:
+            columns += calculate.calculate_params_list
 
         column_definitions = [f"`{column}` double(10,2)" for column in columns]
         column_definitions_str = ",\n  ".join(column_definitions)
@@ -150,12 +152,26 @@ class DBwork(Common):
         self.db.mysql_executemany(insert_sql, values)
         self.db.mysql_commit()
 
-    def insert_graph_data(self, filelist):
-        # 1. 누적값 계산
-        sql = ''
+    def insert_graph_data(self):
+        table_name = self.report_conf['graph_table_name']
 
-        # 2. 계산값
-        pass
+        columns = self.report_conf['status_graph_params'].split(',')
+        columns = [c for c in columns if c.lower() in map(str.lower, self.status_columns)]
+        columns_query = ", ".join(
+            f"{col} - LAG({col}) OVER (ORDER BY id) AS {col}" for col in columns
+        )
+
+        insert_sql = f"""
+            insert into {self.db_name}.{table_name} 
+                (id, {','.join(columns + self.report_conf['memory_graph_params'].split(','))})
+            SELECT gs.id, {columns_query}, mu.{self.report_conf['memory_graph_params']}
+            FROM {self.db_name}.{self.report_conf['status_table_name']} gs 
+                left join {self.db_name}.{self.report_conf['memory_table_name']} mu on gs.id = mu.id 
+        """
+
+        print(insert_sql)
+        self.db.mysql_execute(insert_sql)
+        self.db.mysql_commit()
 
     def __del__(self):
         self.db.mysql_close()
