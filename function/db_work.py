@@ -1,7 +1,7 @@
 import os
 import re
 
-from config import calculate
+from config.calculate import calculate_params_list, calculate_params
 from function.parser import Parser
 from module.common import Common
 from module.connection import Connection
@@ -90,8 +90,8 @@ class DBwork(Common):
         columns = self.report_conf['status_graph_params'].split(',')
         if self.report_conf.get('memory_graph_params') is not None:
             columns.append(self.report_conf['memory_graph_params'])
-        if len(calculate.calculate_params_list) != 0:
-            columns += calculate.calculate_params_list
+        if len(calculate_params_list) != 0:
+            columns += calculate_params_list
 
         column_definitions = [f"`{column}` double(10,2)" for column in columns]
         column_definitions_str = ",\n  ".join(column_definitions)
@@ -160,16 +160,24 @@ class DBwork(Common):
         columns_query = ", ".join(
             f"{col} - LAG({col}) OVER (ORDER BY id) AS {col}" for col in columns
         )
+        calculate_query = ", ".join(
+            f"{calculate_params[col]} as {col}" for col in calculate_params_list
+        )
 
         insert_sql = f"""
             insert into {self.db_name}.{table_name} 
-                (id, {','.join(columns + self.report_conf['memory_graph_params'].split(','))})
-            SELECT gs.id, {columns_query}, mu.{self.report_conf['memory_graph_params']}
+                (id, 
+                    {','.join(columns + self.report_conf['memory_graph_params'].split(',') + calculate_params_list)}
+                )
+            SELECT 
+                    gs.id, 
+                    {columns_query}, 
+                    mu.{self.report_conf['memory_graph_params']}, 
+                    {calculate_query}
             FROM {self.db_name}.{self.report_conf['status_table_name']} gs 
                 left join {self.db_name}.{self.report_conf['memory_table_name']} mu on gs.id = mu.id 
         """
 
-        print(insert_sql)
         self.db.mysql_execute(insert_sql)
         self.db.mysql_commit()
 
