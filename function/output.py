@@ -15,6 +15,7 @@ class Output(Common):
         self.report_conf = self.get_config()['excel']
 
     def fetch_data_from_mysql(self):
+        self.logger.info("extract graph data from mysql")
         db_work = DBwork()
         table_name = self.get_config()['report']['graph_table_name']
         sql = f"select * from {db_work.db_name}.{table_name}"
@@ -33,6 +34,7 @@ class Output(Common):
         return dataframe
 
     def create_excel(self, dataframe):
+        self.logger.info("make excel data")
         output_file = self.report_conf['excel_file']
 
         # Workbook 생성
@@ -55,6 +57,7 @@ class Output(Common):
         wb.save(output_file)
 
     def create_graph(self, dataframe):
+        self.logger.info("make graph image files")
         # 그래프 저장 경로 설정
         save_dir = "./graphs"
         os.makedirs(save_dir, exist_ok=True)

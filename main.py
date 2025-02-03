@@ -45,12 +45,14 @@ class Main(Common):
         db_work.insert_graph_data()
 
         ##################################### 5. 데이터 excel 파일로 추출 및 그래프 저장
-        self.logger.info("################## Extract the graph data to MS Excel")
+        self.logger.info("################## Create excel and graph files")
         output = Output()
 
         data = output.fetch_data_from_mysql()
         output.create_excel(data)
         output.create_graph(data)
+
+        self.logger.info("################## End of Main Process")
         
 
 if __name__ == "__main__":
