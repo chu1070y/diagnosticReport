@@ -8,6 +8,13 @@ from module.connection import Connection
 
 
 class DBwork(Common):
+    def __new__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            instance = super().__new__(cls)
+            cls._instances[cls] = instance
+            cls._initialize()
+        return cls._instances[cls]
+
     def __init__(self):
         self.logger = self.get_logger()
         self.report_conf = self.get_config()['report']
@@ -180,6 +187,14 @@ class DBwork(Common):
 
         self.db.mysql_execute(insert_sql)
         self.db.mysql_commit()
+
+    def get_graph_data(self):
+        table_name = self.report_conf['graph_table_name']
+
+        sql = f"select * from {self.db_name}.{table_name}"
+
+        self.db.mysql_execute(sql)
+        return self.db.mysql_fetchall()
 
     def __del__(self):
         self.db.mysql_close()

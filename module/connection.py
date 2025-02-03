@@ -60,7 +60,7 @@ class Connection(Common):
         self.cur.executemany(sql, params)
 
     def mysql_fetchall(self):
-        return self.cur.fetchall
+        return self.cur.fetchall()
 
     def mysql_close(self):
         self.logger.info("Closing mysql connection")
@@ -69,6 +69,9 @@ class Connection(Common):
 
     def mysql_commit(self):
         self.conn.commit()
+
+    def get_connection(self):
+        return self.conn
 
 
 if __name__ == "__main__":
