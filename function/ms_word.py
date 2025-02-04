@@ -14,10 +14,10 @@ class MSword(Common):
         self.report_conf = self.get_config()['excel']
 
         self.sample_report_path = './sample/sample_diagnostic_report.docx'
-        self.report_path = './diagnostic_report.docx'
+        self.report_path = './result/diagnostic_report.docx'
 
-        self.graph_folder = './graphs/'
-        self.image_extensions = [".png", ".jpg", ".jpeg"]
+        self.graph_folder = './result/graphs/'
+        # self.image_extensions = [".png", ".jpg", ".jpeg"]
 
     def make_report(self):
         self.logger.info("input data on diagnostic report")

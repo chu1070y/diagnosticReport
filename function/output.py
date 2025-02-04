@@ -15,8 +15,9 @@ class Output(Common):
         self.logger = self.get_logger()
         self.report_conf = self.get_config()['excel']
 
-        # 그래프 저장 경로 설정
-        self.save_dir = "./graphs"
+        # 저장 경로 설정
+        self.excel_dir = "./result/"
+        self.graph_save_dir = "./result/graphs"
 
     def fetch_data_from_mysql(self):
         self.logger.info("extract graph data from mysql")
@@ -38,7 +39,7 @@ class Output(Common):
 
     def create_excel(self, dataframe):
         self.logger.info("make excel data")
-        output_file = self.report_conf['excel_file']
+        output_file = self.excel_dir + self.report_conf['excel_file']
 
         # Workbook 생성
         wb = Workbook()
@@ -62,7 +63,7 @@ class Output(Common):
     def create_basicplot(self, dataframe):
         self.logger.info("make graph image files")
 
-        os.makedirs(self.save_dir, exist_ok=True)
+        os.makedirs(self.graph_save_dir, exist_ok=True)
 
         dataframe["id"] = pd.to_datetime(dataframe["id"], format="%Y%m%d%H%M").astype(str)
         plt.set_loglevel('WARNING')
@@ -84,7 +85,7 @@ class Output(Common):
             plt.tight_layout()
 
             # 그래프 저장
-            save_path = os.path.join(self.save_dir, f"{col}.png".lower())
+            save_path = os.path.join(self.graph_save_dir, f"{col}.png".lower())
             plt.savefig(save_path, dpi=300)
             plt.close()
 
@@ -126,7 +127,7 @@ class Output(Common):
 
         plt.tight_layout()
 
-        save_path = os.path.join(self.save_dir, f"query_usages.png")
+        save_path = os.path.join(self.graph_save_dir, f"query_usages.png")
         plt.savefig(save_path, dpi=300)
         plt.close()
 
@@ -136,6 +137,6 @@ if __name__ == "__main__":
 
     data = e.fetch_data_from_mysql()
     # e.create_excel(data)
-    e.create_basicplot(data)
-    e.create_query_usage_chart(data)
+    # e.create_basicplot(data)
+    # e.create_query_usage_chart(data)
 

@@ -67,9 +67,6 @@ class DBwork(Common):
     def create_memory_table(self):
         table_name = self.report_conf['memory_table_name']
 
-        self.logger.info('table info ---> db_name: {}, table_name: {}'.format(self.db_name, table_name))
-        self.logger.info(f'Drop `{table_name}` table on mysql')
-
         drop_sql = f'drop table if exists {self.db_name}.{table_name}'
         self.db.mysql_execute(drop_sql)
         self.db.mysql_commit()
@@ -80,8 +77,6 @@ class DBwork(Common):
           {self.report_conf['memory_graph_params']} float
         );
         """
-
-        self.logger.info(f'Create `{table_name}` table on mysql')
 
         self.db.mysql_execute(create_table_sql)
         self.db.mysql_commit()
@@ -103,15 +98,10 @@ class DBwork(Common):
           {column_definitions_str}
         );
         """
-
-        self.logger.info('table info ---> db_name: {}, table_name: {}'.format(self.db_name, table_name))
-        self.logger.info(f'Drop `{table_name}` table on mysql')
-
         drop_sql = f'drop table if exists {self.db_name}.{table_name}'
+
         self.db.mysql_execute(drop_sql)
         self.db.mysql_commit()
-
-        self.logger.info(f'Create `{table_name}` table on mysql')
 
         self.db.mysql_execute(create_table_sql)
         self.db.mysql_commit()

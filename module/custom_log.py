@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 
@@ -12,11 +13,8 @@ class CustomLog:
         return cls._instance
 
     def _initialize(self, conf):
-        conf_log = conf['log']
-
-        if 'log_path' not in conf_log:
-            print('log_path key is missing in the log section of config.ini.')
-            sys.exit(1)
+        log_path = './result/app.log'
+        os.makedirs('./result', exist_ok=True)
 
         logger = logging.getLogger()
 
@@ -32,7 +30,7 @@ class CustomLog:
         s_handler.setLevel(logging.INFO)
         logger.addHandler(s_handler)
 
-        file_handler = logging.FileHandler(conf_log['log_path'], mode='a')
+        file_handler = logging.FileHandler(log_path, mode='a')
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.INFO)
         logger.addHandler(file_handler)
