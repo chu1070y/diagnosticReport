@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from module.common import Common
+from function.db_work import DBwork
 
 from openpyxl import Workbook
 
@@ -84,12 +85,12 @@ class Output(Common):
             plt.tight_layout()
 
             # 그래프 저장
-            save_path = os.path.join(self.save_dir, f"{col}.png")
+            save_path = os.path.join(self.save_dir, f"{col}.png".lower())
             plt.savefig(save_path, dpi=300)
             plt.close()
 
     def create_query_usage_chart(self, dataframe):
-        self.logger.info("make query usage chart files")
+        self.logger.info("make query usages chart files")
 
         cols = ['Com_insert', 'Com_delete', 'Com_update', 'Com_select']
         vals = []
@@ -126,14 +127,12 @@ class Output(Common):
 
         plt.tight_layout()
 
-        save_path = os.path.join(self.save_dir, f"Query_usage.png")
+        save_path = os.path.join(self.save_dir, f"query_usages.png")
         plt.savefig(save_path, dpi=300)
         plt.close()
 
 
 if __name__ == "__main__":
-    from function.db_work import DBwork
-
     e = Output()
 
     data = e.fetch_data_from_mysql()

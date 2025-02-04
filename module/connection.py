@@ -73,6 +73,14 @@ class Connection(Common):
     def get_connection(self):
         return self.conn
 
+    def mysql_fetchone_dict(self, sql, params=None):
+        with self.conn.cursor(pymysql.cursors.DictCursor) as dict_cursor:
+            if params:
+                dict_cursor.execute(sql, params)
+            else:
+                dict_cursor.execute(sql)
+            return dict_cursor.fetchone()
+
 
 if __name__ == "__main__":
     c = Connection()

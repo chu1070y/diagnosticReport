@@ -196,6 +196,13 @@ class DBwork(Common):
         self.db.mysql_execute(sql)
         return self.db.mysql_fetchall()
 
+    def get_latest_status_data(self):
+        table_name = self.report_conf['status_table_name']
+
+        sql = f"select * from {self.db_name}.{table_name} order by id limit 1"
+
+        return self.db.mysql_fetchone_dict(sql)
+
     def __del__(self):
         self.db.mysql_close()
 

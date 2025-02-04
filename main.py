@@ -1,5 +1,6 @@
 import re
 
+from function.ms_word import MSword
 from function.db_work import DBwork
 from function.output import Output
 from function.parser import Parser
@@ -52,6 +53,11 @@ class Main(Common):
         output.create_excel(data)
         output.create_basicplot(data)
         output.create_query_usage_chart(data)
+
+        ##################################### 6. 샘플 word 파일 데이터 채워넣기
+        self.logger.info("################## Input data to word file")
+
+        MSword().make_report()
 
         self.logger.info("################## End of Main Process")
         
