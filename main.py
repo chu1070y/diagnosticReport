@@ -50,7 +50,8 @@ class Main(Common):
 
         data = output.fetch_data_from_mysql()
         output.create_excel(data)
-        output.create_graph(data)
+        output.create_basicplot(data)
+        output.create_query_usage_chart(data)
 
         self.logger.info("################## End of Main Process")
         

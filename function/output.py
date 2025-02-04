@@ -14,6 +14,9 @@ class Output(Common):
         self.logger = self.get_logger()
         self.report_conf = self.get_config()['excel']
 
+        # 그래프 저장 경로 설정
+        self.save_dir = "./graphs"
+
     def fetch_data_from_mysql(self):
         self.logger.info("extract graph data from mysql")
         db_work = DBwork()
@@ -56,11 +59,10 @@ class Output(Common):
         # Excel 파일 저장
         wb.save(output_file)
 
-    def create_graph(self, dataframe):
+    def create_basicplot(self, dataframe):
         self.logger.info("make graph image files")
-        # 그래프 저장 경로 설정
-        save_dir = "./graphs"
-        os.makedirs(save_dir, exist_ok=True)
+
+        os.makedirs(self.save_dir, exist_ok=True)
 
         dataframe["id"] = pd.to_datetime(dataframe["id"], format="%Y%m%d%H%M").astype(str)
         plt.set_loglevel('WARNING')
@@ -82,9 +84,51 @@ class Output(Common):
             plt.tight_layout()
 
             # 그래프 저장
-            save_path = os.path.join(save_dir, f"{col}.png")
+            save_path = os.path.join(self.save_dir, f"{col}.png")
             plt.savefig(save_path, dpi=300)
             plt.close()
+
+    def create_query_usage_chart(self, dataframe):
+        self.logger.info("make query usage chart files")
+
+        cols = ['Com_insert', 'Com_delete', 'Com_update', 'Com_select']
+        vals = []
+
+        for c in cols:
+            vals.append(dataframe[c].sum())
+
+        labels = [f"{col.split('_')[1]}\n({val / sum(vals) * 100:.1f}%)" for col, val in zip(cols, vals)]
+
+        plt.figure(figsize=(8, 6))
+        plt.pie(
+            vals,
+            explode=(0, 0, 0, 0),
+            labels=labels,
+            colors=['#ED7D31', '#FFC000', '#A5A5A5', '#4472C4'],
+            # autopct='%1.1f%%',  # 퍼센트 표시
+            wedgeprops={'edgecolor': 'white', 'linewidth': 2},
+            labeldistance=1.1,
+            # pctdistance=0.1,
+            startangle=100,
+            textprops={'fontsize': 12},
+        )
+
+        plt.title("Query Usages", fontsize=20, fontweight='bold', color="#4472C4", pad=20)
+
+        plt.legend(
+            cols,
+            loc="lower center",
+            bbox_to_anchor=(0.5, -0.05),
+            ncol=4,
+            fontsize=10,
+            frameon=False
+        )
+
+        plt.tight_layout()
+
+        save_path = os.path.join(self.save_dir, f"Query_usage.png")
+        plt.savefig(save_path, dpi=300)
+        plt.close()
 
 
 if __name__ == "__main__":
@@ -94,4 +138,6 @@ if __name__ == "__main__":
 
     data = e.fetch_data_from_mysql()
     # e.create_excel(data)
-    e.create_graph(data)
+    e.create_basicplot(data)
+    e.create_query_usage_chart(data)
+
