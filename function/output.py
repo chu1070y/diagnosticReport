@@ -23,7 +23,6 @@ class Output(Common):
         db_work = DBwork()
         table_name = self.get_config()['report']['graph_table_name']
         sql = f"select * from {db_work.db_name}.{table_name}"
-        print('#### query:', sql)
 
         df = pd.read_sql(sql, db_work.db.get_connection())
 

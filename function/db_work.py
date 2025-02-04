@@ -31,24 +31,19 @@ class DBwork(Common):
     def create_status_table(self, file_list: list):
         table_name = self.report_conf['status_table_name']
 
-        self.logger.info('table info ---> db_name: {}, table_name: {}'.format(self.db_name, table_name))
-
         ########################################### 데이터베이스 생성
-        self.logger.info(f'Creating `{self.db_name}` database on mysql')
-
         sql = f'create database if not exists {self.db_name}'
+
         self.db.mysql_execute(sql)
         self.db.mysql_commit()
 
         ########################################### 기존 테이블 삭제
-        self.logger.info(f'Drop `{table_name}` table on mysql')
-
         sql = f'drop table if exists {self.db_name}.{table_name}'
+
         self.db.mysql_execute(sql)
         self.db.mysql_commit()
 
         ########################################### 첫 status 파일 읽어서 컬럼 추출
-        self.logger.info('Reading status file...')
         self.status_columns = self.parser.get_columns(file_list[0])
 
         self.logger.info(f'Count global status parameter: {len(self.status_columns)}')
