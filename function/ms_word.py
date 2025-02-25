@@ -124,7 +124,7 @@ class MSword(Common):
         variables_data = dict()
 
         # 왼쪽 정렬 파라미터 리스트 (여기 없으면 모두 가운데 정렬)
-        left_aligned_param_list = ['my.cnf', 'hostname', 'memory', 'os version', 'cpu', 'version', 'log_error', 'slow_query_log_file', 'log_bin_basename', 'innodb_data_file_path', 'default_storage_engine', 'port', 'socket']
+        left_aligned_param_list = ['my.cnf', 'hostname', 'memory', 'os version', 'cpu', 'version', 'log_error', 'slow_query_log_file', 'log_bin_basename', 'innodb_data_file_path', 'default_storage_engine', 'port', 'socket', 'basedir', 'datadir']
 
         os_info_dict = self.get_os_info()
         variables_data = parse_table_to_dict(os_info_dict.get('global variables'))
