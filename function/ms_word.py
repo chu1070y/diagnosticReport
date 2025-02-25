@@ -140,7 +140,8 @@ class MSword(Common):
             self.logger.warning("An error occurred while parsing the OS info file...")
             self.logger.warning(e)
 
-        all_data = {**status_data, **os_info_data}
+        all_data = {**status_data, **os_info_data, **variables_data}
+        all_data = {k.lower(): v for k, v in all_data.items()}
 
         report = Document(self.sample_report_path)
 
@@ -165,11 +166,12 @@ class MSword(Common):
 
                     # 그렇지 않으면 일반 텍스트 치환 수행
                     elif text.startswith("{"):
-                        key = text.lstrip('{').rstrip('}')
+                        key = text.lstrip('{').rstrip('}').lower()
+
                         if key in all_data.keys():
                             cell.text = text.replace(text, all_data.get(key))
 
-                            if key in ('my.cnf', 'hostname', 'Memory', 'OS Version', 'CPU'):
+                            if key in ('my.cnf', 'hostname', 'memory', 'os version', 'cpu'):
                                 continue
 
                             for para in cell.paragraphs:
