@@ -124,7 +124,11 @@ class MSword(Common):
         variables_data = dict()
 
         # 왼쪽 정렬 파라미터 리스트 (여기 없으면 모두 가운데 정렬)
-        left_aligned_param_list = ['my.cnf', 'hostname', 'memory', 'os version', 'cpu', 'version', 'log_error', 'slow_query_log_file', 'log_bin_basename', 'innodb_data_file_path', 'default_storage_engine', 'port', 'socket', 'basedir', 'datadir']
+        left_aligned_param_list = [
+            'my.cnf', 'hostname', 'memory', 'os version', 'cpu', 'version',
+            'log_error', 'slow_query_log_file', 'log_bin_basename', 'innodb_data_file_path',
+            'default_storage_engine', 'port', 'socket', 'basedir', 'datadir'
+        ]
 
         os_info_dict = self.get_os_info()
         variables_data = parse_table_to_dict(os_info_dict.get('global variables'))
@@ -172,14 +176,19 @@ class MSword(Common):
                         key = text.lstrip('{').rstrip('}').lower()
 
                         if key in all_data.keys():
-                            cell.text = text.replace(text, all_data.get(key))
+                            cell.text = ""  # 기존 텍스트 삭제 (안 하면 스타일 초기화됨)
+                            para = cell.paragraphs[0]
 
-                            # 가운데 정렬 안할 파라미터 리스트
+                            run = para.add_run(all_data.get(key))
+                            run.font.name = "Malgun Gothic"
+
+                            # 정렬 방식 지정
                             if key in left_aligned_param_list:
-                                continue
+                                para.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
 
-                            for para in cell.paragraphs:
-                                para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER # 가운데 정렬 적용
+                            else:
+                                para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
 
         # 변경된 문서 저장
         report.save(self.report_path)
