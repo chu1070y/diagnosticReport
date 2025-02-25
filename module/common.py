@@ -1,3 +1,4 @@
+import functools
 import logging
 
 from module.custom_log import CustomLog
@@ -38,3 +39,16 @@ class Common:
         if cls._conf is None:
             raise ValueError("Configuration is not initialized. Ensure Common class is instantiated first.")
         return cls._conf
+
+    @staticmethod
+    def exception_handler(func):
+        """공용 예외 처리 데코레이터"""
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                logger = Common.get_logger()
+                logger.error(f"예외 발생: {e} (메소드: {func.__name__})", exc_info=True)
+                return None
+        return wrapper

@@ -1,11 +1,105 @@
-import shutil
+import re
 
 from function.db_work import DBwork
 from module.common import Common
 
 from docx import Document
-from docx.shared import Inches
+from docx.shared import Inches, Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+
+
+def find_table_after_heading(doc, heading_text):
+    """ 특정 제목(heading_text) 다음에 오는 첫 번째 표 찾기 """
+    found_heading = False
+    for para in doc.paragraphs:
+        if heading_text in para.text.strip():  # 제목 찾기
+            found_heading = True
+            continue
+
+        if found_heading:
+            # 제목 다음에 있는 표 반환
+            for table in doc.tables:
+                if para._element in table._element.xpath(".//preceding-sibling::w:p"):
+                    return table
+    return None
+
+
+def set_cell_shading(cell, color):
+    """ 셀의 배경색을 설정하는 함수 """
+    namespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+    shading = OxmlElement("w:shd")
+    shading.set(qn("w:val"), "clear")  # 값 설정 (필수)
+    shading.set(qn("w:color"), "auto")  # 텍스트 색상 자동
+    shading.set(qn("w:fill"), color)  # 배경색 설정
+
+    # 셀에 적용
+    tc_pr = cell._element.find(qn("w:tcPr"))
+    if tc_pr is None:
+        tc_pr = OxmlElement("w:tcPr")
+        cell._element.append(tc_pr)
+    tc_pr.append(shading)
+
+
+def parse_table_to_dict(table_str):
+    lines = table_str.strip().split("\n")  # 문자열을 줄 단위로 나눔
+    data_dict = {}
+
+    for line in lines:
+        line = line.strip()
+
+        # 구분선 제거
+        if line.startswith("+") or line.startswith("| Variable_name"):
+            continue
+
+        # 정규 표현식을 사용하여 컬럼 데이터 추출
+        match = re.match(r"\|\s*(.*?)\s*\|\s*(.*?)\s*\|", line)
+        if match:
+            key, value = match.groups()
+            data_dict[key.strip()] = value.strip()
+
+    return data_dict
+
+
+def parse_cpu_info(cpu_text):
+    from collections import defaultdict
+
+    model_name = None
+    physical_cores = defaultdict(int)  # 물리 CPU별 물리 코어 수
+    logical_cores = defaultdict(int)   # 물리 CPU별 논리 코어 수
+
+    # 프로세서 블록 단위로 나누기
+    cpu_blocks = cpu_text.strip().split("\n\n")
+
+    for block in cpu_blocks:
+        lines = block.strip().split("\n")
+        cpu_info = {}
+
+        for line in lines:
+            match = re.match(r"([^:]+)\s*:\s*(.+)", line)
+            if match:
+                key, value = match.groups()
+                cpu_info[key.strip()] = value.strip()
+
+        # CPU 모델명 추출 (모든 프로세서가 동일한 모델 가정)
+        if "model name" in cpu_info and model_name is None:
+            model_name = cpu_info["model name"]
+
+        # 물리 ID 기준으로 물리/논리 코어 개수 저장
+        if "physical id" in cpu_info:
+            phys_id = cpu_info["physical id"]
+            if "cpu cores" in cpu_info:
+                physical_cores[phys_id] = int(cpu_info["cpu cores"])
+            if "siblings" in cpu_info:
+                logical_cores[phys_id] = int(cpu_info["siblings"])
+
+    # 총 물리 코어 & 논리 코어 개수 계산
+    total_physical_cores = sum(physical_cores.values())
+    total_logical_cores = sum(logical_cores.values())
+
+    return f"{model_name} ({total_physical_cores} Physical Cores / {total_logical_cores} Logical Cores)"
 
 
 class MSword(Common):
@@ -15,14 +109,38 @@ class MSword(Common):
 
         self.sample_report_path = './sample/sample_diagnostic_report.docx'
         self.report_path = './result/diagnostic_report.docx'
+        self.os_info_path = self.get_config()['path'].get('os_info_file')
 
         self.graph_folder = './result/graphs/'
         # self.image_extensions = [".png", ".jpg", ".jpeg"]
 
+    @Common.exception_handler
     def make_report(self):
-        self.logger.info("input data on diagnostic report")
+        # 설정값 + 상태값 + 그래프 삽입
+        self.logger.info("input status and graph on diagnostic report")
         db = DBwork()
         status_data = db.get_latest_status_data()
+        os_info_data = dict()
+        variables_data = dict()
+
+        os_info_dict = self.get_os_info()
+        variables_data = parse_table_to_dict(os_info_dict.get('global variables'))
+
+        try:
+            os_info_dict = self.get_os_info()
+            variables_data = parse_table_to_dict(os_info_dict.get('global variables'))
+
+            os_info_data['hostname'] = os_info_dict.get('hostname')
+            os_info_data['OS Version'] = os_info_dict.get('OS Version').split('\n')[0]
+            os_info_data['CPU'] = parse_cpu_info(os_info_dict.get('cpu'))
+            os_info_data['Memory'] = os_info_dict.get('memory').split('\n')[0].replace('MemTotal:', '').strip()
+            os_info_data['my.cnf'] = os_info_dict.get('my.cnf')
+
+        except Exception as e:
+            self.logger.warning("An error occurred while parsing the OS info file...")
+            self.logger.warning(e)
+
+        all_data = {**status_data, **os_info_data}
 
         report = Document(self.sample_report_path)
 
@@ -47,14 +165,45 @@ class MSword(Common):
 
                     # 그렇지 않으면 일반 텍스트 치환 수행
                     elif text.startswith("{"):
-                        for key, value in status_data.items():
-                            key = "{" + key.lower() + "}"
-                            if key in text:
-                                cell.text = text.replace(key, value)
-                                for para in cell.paragraphs:
-                                    para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER  # 가운데 정렬 적용
+                        key = text.lstrip('{').rstrip('}')
+                        if key in all_data.keys():
+                            cell.text = text.replace(text, all_data.get(key))
+
+                            if key in ('my.cnf', 'hostname', 'Memory', 'OS Version', 'CPU'):
+                                continue
+
+                            for para in cell.paragraphs:
+                                para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER # 가운데 정렬 적용
 
         # 변경된 문서 저장
+        report.save(self.report_path)
+
+        #######################################################################
+        # 표 삽입
+        self.logger.info("input variable table on diagnostic report")
+
+        report = Document(self.report_path)
+
+        table = find_table_after_heading(report, "Variables 정보")
+
+        if table is None:
+            print("해당 제목 아래에 표를 찾을 수 없습니다.")
+            return
+
+        while len(table.rows) > 1:
+            table._element.remove(table.rows[-1]._element)
+
+        # 데이터 삽입
+        for i, (key, value) in enumerate(variables_data.items()):
+            row_cells = table.add_row().cells  # 새로운 행 추가
+
+            row_cells[0].paragraphs[0].add_run(key).font.size = Pt(8)
+            row_cells[1].paragraphs[0].add_run(str(value)).font.size = Pt(8)
+
+            # 줄무늬 스타일 (홀수 행은 회색, 짝수 행은 흰색)
+            set_cell_shading(row_cells[0], "F2F2F2")
+
+        # 수정된 문서 저장
         report.save(self.report_path)
 
     def insert_graph(self, graph_folder, paragraph, placeholder):
@@ -83,8 +232,19 @@ class MSword(Common):
         else:
             self.logger.warning(f"이미지 파일을 찾을 수 없음: {filename}")
 
+    @Common.exception_handler
+    def get_os_info(self):
+        session_data = {}
+
+        with open(self.os_info_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+
+        sections = re.split(r"=+\s*(.+?)\s*=+\n", content)
+        session_data = {sections[i].strip(): sections[i + 1].strip() for i in range(1, len(sections) - 1, 2)}
+
+        return session_data
+
 
 if __name__ == "__main__":
     MSword().make_report()
-
 
