@@ -1,4 +1,4 @@
-## 리스트
+## 리스트 ---- 여기 곡 넣어줘야 계산식을 인식합니다!!
 calculate_params_list = ['Innodb_buffer_hit_ratio', 'Tmp_disk_rate']
 
 
