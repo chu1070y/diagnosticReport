@@ -106,17 +106,29 @@ class DBwork(Common):
         self.db.mysql_execute(create_table_sql)
         self.db.mysql_commit()
 
-    def insert_status(self, date: str,  status: dict):
+    # def insert_status(self, date: str,  status: dict):
+    #     table_name = self.report_conf['status_table_name']
+    #
+    #     items = list(status.items())
+    #     columns = ", ".join(["`" + key + "`" for key, _ in items])
+    #     placeholders = ", ".join(["%s"] * (len(items) + 1))
+    #     values = [date] + [value for _, value in items]
+    #
+    #     insert_sql = f"INSERT INTO {self.db_name}.{table_name} (id, {columns}) VALUES ({placeholders})"
+    #
+    #     self.db.mysql_execute(insert_sql, tuple(values))
+    #     self.db.mysql_commit()
+
+    def insert_status(self, statuslist: list):
         table_name = self.report_conf['status_table_name']
 
-        items = list(status.items())
-        columns = ", ".join(["`" + key + "`" for key, _ in items])
-        placeholders = ", ".join(["%s"] * (len(items) + 1))
-        values = [date] + [value for _, value in items]
+        items = list(statuslist[0].items())
+        columns = ["`" + key + "`" for key, _ in items]
+        columns_str = ", ".join(columns)
+        placeholders = ", ".join([f"%({col})s" for col, _ in items])
 
-        insert_sql = f"INSERT INTO {self.db_name}.{table_name} (id, {columns}) VALUES ({placeholders})"
-
-        self.db.mysql_execute(insert_sql, tuple(values))
+        insert_sql = f"INSERT INTO {self.db_name}.{table_name} ({columns_str}) VALUES ({placeholders})"
+        self.db.mysql_executemany(insert_sql, statuslist)
         self.db.mysql_commit()
 
     def insert_memory(self, filelist):

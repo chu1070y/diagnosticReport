@@ -33,10 +33,25 @@ class Main(Common):
         ##################################### 3. 파일 파싱 및 데이터 insert
         self.logger.info("################## Starting parsing & insert --- global status")
 
+        # for status_file in status_filelist:
+        #     db_work.insert_status(re.search(r'(\d+)$', status_file).group(1), parser.parse_status(status_file))
+
+        batch_size = 100
+        batch_list = list()
+        batch_count = 0
+
         for status_file in status_filelist:
-            db_work.insert_status(re.search(r'(\d+)$', status_file).group(1), parser.parse_status(status_file))
+            batch_list.append({'id': re.search(r'(\d+)$', status_file).group(1), **parser.parse_status(status_file)})
+
+            if len(batch_list) >= batch_size:
+                db_work.insert_status(batch_list)
+
+                batch_count += len(batch_list)
+                self.logger.info(f"Insert global status total count : {batch_count}")
+                batch_list = list()
 
         self.logger.info("Completed parsing & insert --- global status")
+
         self.logger.info("Starting parsing & insert --- memory")
         db_work.insert_memory(memory_filelist)
         self.logger.info("Completed parsing & insert --- memory")
