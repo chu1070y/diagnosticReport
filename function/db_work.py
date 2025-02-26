@@ -64,8 +64,8 @@ class DBwork(Common):
         self.db.mysql_execute(create_table_sql)
         self.db.mysql_commit()
 
-    def create_memory_table(self):
-        table_name = self.report_conf['memory_table_name']
+    def create_os_table(self):
+        table_name = self.report_conf['os_table_name']
 
         drop_sql = f'drop table if exists {self.db_name}.{table_name}'
         self.db.mysql_execute(drop_sql)
@@ -74,7 +74,9 @@ class DBwork(Common):
         create_table_sql = f"""
         CREATE TABLE `{self.db_name}`.`{table_name}` (
           id varchar(12) primary key,
-          {self.report_conf['memory_graph_params']} float
+          {
+            ','.join([x + ' double' for x in self.report_conf.get('os_graph_params').split(',')])
+          }
         );
         """
 
@@ -85,8 +87,10 @@ class DBwork(Common):
         table_name = self.report_conf['graph_table_name']
 
         columns = self.report_conf['status_graph_params'].split(',')
-        if self.report_conf.get('memory_graph_params') is not None:
-            columns.append(self.report_conf['memory_graph_params'])
+
+        if self.report_conf.get('os_graph_params') is not None:
+            columns += self.report_conf['os_graph_params'].split(',')
+
         if len(calculate_params_list) != 0:
             columns += calculate_params_list
 
@@ -106,19 +110,6 @@ class DBwork(Common):
         self.db.mysql_execute(create_table_sql)
         self.db.mysql_commit()
 
-    # def insert_status(self, date: str,  status: dict):
-    #     table_name = self.report_conf['status_table_name']
-    #
-    #     items = list(status.items())
-    #     columns = ", ".join(["`" + key + "`" for key, _ in items])
-    #     placeholders = ", ".join(["%s"] * (len(items) + 1))
-    #     values = [date] + [value for _, value in items]
-    #
-    #     insert_sql = f"INSERT INTO {self.db_name}.{table_name} (id, {columns}) VALUES ({placeholders})"
-    #
-    #     self.db.mysql_execute(insert_sql, tuple(values))
-    #     self.db.mysql_commit()
-
     def insert_status(self, statuslist: list):
         table_name = self.report_conf['status_table_name']
 
@@ -131,27 +122,12 @@ class DBwork(Common):
         self.db.mysql_executemany(insert_sql, statuslist)
         self.db.mysql_commit()
 
-    def insert_memory(self, filelist):
-        table_name = self.report_conf['memory_table_name']
-        memory_data = {}
+    def insert_os_info(self, values):
+        table_name = self.report_conf['os_table_name']
 
-        for path in filelist:
-            if os.path.isfile(path):
-                try:
-                    filename = os.path.basename(path)
-                    with open(path, 'r', encoding='utf-8') as file:
-                        content = file.read()
-                    memory_data[re.search(r'(\d+)$', filename).group(1)] = content
-                except Exception as e:
-                    self.logger.error(f"Error reading file {path}: {e}")
-            else:
-                self.logger.error(f"Invalid file path: {path}")
+        placeholders = ", ".join([f"%({col})s" for col in self.report_conf.get('os_graph_params').split(',')])
 
-        items = list(memory_data.items())
-        values = [(k, float(v)) for k, v in items]
-        placeholders = ", ".join(["%s"] * len(values[0]))
-
-        insert_sql = f"INSERT INTO {self.db_name}.{table_name} (id, {self.report_conf['memory_graph_params']}) VALUES ({placeholders})"
+        insert_sql = f"INSERT INTO {self.db_name}.{table_name} (id, {self.report_conf.get('os_graph_params')}) VALUES (%(id)s, {placeholders})"
 
         self.db.mysql_executemany(insert_sql, values)
         self.db.mysql_commit()
@@ -171,15 +147,15 @@ class DBwork(Common):
         insert_sql = f"""
             insert into {self.db_name}.{table_name} 
                 (id, 
-                    {','.join(columns + self.report_conf['memory_graph_params'].split(',') + calculate_params_list)}
+                    {','.join(columns + self.report_conf['os_graph_params'].split(',') + calculate_params_list)}
                 )
             SELECT 
                     gs.id, 
                     {columns_query}, 
-                    mu.{self.report_conf['memory_graph_params']}, 
+                    {self.report_conf['os_graph_params']}, 
                     {calculate_query}
             FROM {self.db_name}.{self.report_conf['status_table_name']} gs 
-                left join {self.db_name}.{self.report_conf['memory_table_name']} mu on gs.id = mu.id 
+                left join {self.db_name}.{self.report_conf['os_table_name']} mu on gs.id = mu.id 
         """
 
         self.db.mysql_execute(insert_sql)

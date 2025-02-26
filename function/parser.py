@@ -1,5 +1,6 @@
 import glob
 import os
+import re
 
 from module.common import Common
 
@@ -12,7 +13,6 @@ class Parser(Common):
     def get_files(self, name):
         try:
             path = self.conf['path'].get(name, None)
-            self.logger.info(f'The {name} path: {path}')
 
             if not path:
                 self.logger.error(f"{name} is not defined in config.ini")
@@ -54,12 +54,47 @@ class Parser(Common):
                     columns[parts[0]] = parts[1]
         return columns
 
+    def parse_mysql_memory_used(self, file_path: list):
+        memory_data = {}
+
+        for path in file_path:
+            if os.path.isfile(path):
+                try:
+                    filename = os.path.basename(path)
+                    with open(path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+                    memory_data[re.search(r'(\d+)$', filename).group(1)] = content.strip()
+                except Exception as e:
+                    self.logger.error(f"Error reading file {path}: {e}")
+            else:
+                self.logger.error(f"Invalid file path: {path}")
+
+        return memory_data
+
+    def parse_mysql_data_size(self, file_path: list):
+        datasize_data = {}
+
+        for path in file_path:
+            if os.path.isfile(path):
+                try:
+                    filename = os.path.basename(path)
+                    with open(path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+                    datasize_data[re.search(r'(\d+)$', filename).group(1)] = content.split('\n')[0].replace('DATA SIZE:', '').split(' ')[0]
+                except Exception as e:
+                    self.logger.error(f"Error reading file {path}: {e}")
+            else:
+                self.logger.error(f"Invalid file path: {path}")
+
+        return datasize_data
+
 
 if __name__ == "__main__":
     parser = Parser()
     # result = parser.get_files('global_status_path')
     # result = parser.get_columns('C:/Users/USER/Desktop/work/MySQL_정밀진단/status_log_bs/status_log/global_status\\20241218\\global_status.202412181430')
     result = parser.parse_status('C:/Users/USER/Desktop/work/MySQL_정밀진단/status_log_bs/status_log/global_status\\20241218\\global_status.202412181430')
+
     print(result)
 
 
