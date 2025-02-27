@@ -1,6 +1,3 @@
-import os
-import re
-
 from config.calculate import calculate_params_list, calculate_params
 from function.parser import Parser
 from module.common import Common
