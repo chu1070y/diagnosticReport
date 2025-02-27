@@ -85,6 +85,9 @@ class Main(Common):
 
         MSword().make_report()
 
+        ##################################### 999. connection 종료
+        db_work.db_close()
+
         self.logger.info("################## End of Main Process")
 
 

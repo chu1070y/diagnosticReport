@@ -176,6 +176,6 @@ class DBwork(Common):
 
         return self.db.mysql_fetchone_dict(sql)
 
-    def __del__(self):
+    def db_close(self):
         self.db.mysql_close()
 
