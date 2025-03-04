@@ -101,13 +101,14 @@ class Output(Common):
             vals.append(dataframe[c].sum())
 
         labels = [f"{col.split('_')[1]}\n({val / sum(vals) * 100:.1f}%)" for col, val in zip(cols, vals)]
+        colors = ['#ED7D31', '#FFC000', '#A5A5A5', '#4472C4']
 
         plt.figure(figsize=(8, 6))
         plt.pie(
             vals,
-            explode=(0, 0, 0, 0),
-            labels=labels,
-            colors=['#ED7D31', '#FFC000', '#A5A5A5', '#4472C4'],
+            explode=[0, 0, 0, 0],
+            # labels=labels,
+            colors=colors,
             # autopct='%1.1f%%',  # 퍼센트 표시
             wedgeprops={'edgecolor': 'white', 'linewidth': 2},
             labeldistance=1.1,
@@ -119,10 +120,10 @@ class Output(Common):
         plt.title("Query Usages", fontsize=20, fontweight='bold', color="#4472C4", pad=20)
 
         plt.legend(
-            cols,
+            labels,
             loc="lower center",
             bbox_to_anchor=(0.5, -0.05),
-            ncol=4,
+            ncol=len(cols),
             fontsize=10,
             frameon=False
         )
@@ -140,5 +141,5 @@ if __name__ == "__main__":
     data = e.fetch_data_from_mysql()
     # e.create_excel(data)
     # e.create_basicplot(data)
-    # e.create_query_usage_chart(data)
+    e.create_query_usage_chart(data)
 

@@ -83,7 +83,7 @@ class DBwork(Common):
     def create_graph_table(self):
         table_name = self.report_conf['graph_table_name']
 
-        columns = self.report_conf['status_graph_params'].split(',')
+        columns = self.report_conf['status_graph_accumulate_params'].split(',') + self.report_conf['status_graph_current_params'].split(',')
 
         if self.report_conf.get('os_graph_params') is not None:
             columns += self.report_conf['os_graph_params'].split(',')
@@ -132,11 +132,18 @@ class DBwork(Common):
     def insert_graph_data(self):
         table_name = self.report_conf['graph_table_name']
 
-        columns = self.report_conf['status_graph_params'].split(',')
-        columns = [c for c in columns if c.lower() in map(str.lower, self.status_columns)]
-        columns_query = ", ".join(
-            f"{col} - LAG({col}) OVER (ORDER BY id) AS {col}" for col in columns
+        accumulate_columns = self.report_conf['status_graph_accumulate_params'].split(',')
+        current_columns = self.report_conf['status_graph_current_params'].split(',')
+
+        accumulate_columns = [c for c in accumulate_columns if c.lower() in map(str.lower, self.status_columns)]
+        current_columns = [c for c in current_columns if c.lower() in map(str.lower, self.status_columns)]
+
+        accumulate_columns_query = ", ".join(
+            f"{col} - LAG({col}) OVER (ORDER BY id) AS {col}" for col in accumulate_columns
         )
+
+        current_columns_query = ", ".join(current_columns)
+
         calculate_query = ", ".join(
             f"{calculate_params[col]} as {col}" for col in calculate_params_list
         )
@@ -144,11 +151,12 @@ class DBwork(Common):
         insert_sql = f"""
             insert into {self.db_name}.{table_name} 
                 (id, 
-                    {','.join(columns + self.report_conf['os_graph_params'].split(',') + calculate_params_list)}
+                    {','.join(accumulate_columns + current_columns + self.report_conf['os_graph_params'].split(',') + calculate_params_list)}
                 )
             SELECT 
                     gs.id, 
-                    {columns_query}, 
+                    {accumulate_columns_query}, 
+                    {current_columns_query},
                     {self.report_conf['os_graph_params']}, 
                     {calculate_query}
             FROM {self.db_name}.{self.report_conf['status_table_name']} gs 
