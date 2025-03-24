@@ -62,7 +62,7 @@ class Parser(Common):
                 try:
                     filename = os.path.basename(path)
                     with open(path, 'r', encoding='utf-8') as file:
-                        content = file.read()
+                        content = file.read().split('\n')[0]
                     memory_data[re.search(r'(\d+)$', filename).group(1)] = content.strip()
                 except Exception as e:
                     self.logger.error(f"Error reading file {path}: {e}")
