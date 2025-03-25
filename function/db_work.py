@@ -5,19 +5,11 @@ from module.connection import Connection
 
 
 class DBwork(Common):
-    def __new__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            instance = super().__new__(cls)
-            cls._instances[cls] = instance
-            cls._initialize()
-        return cls._instances[cls]
-
     def __init__(self):
         self.logger = self.get_logger()
         self.report_conf = self.get_config()['report']
 
         self.db = Connection()
-        self.db.mysql_connect()
 
         self.parser = Parser()
 

@@ -4,19 +4,27 @@ from module.common import Common
 
 
 class Connection(Common):
+    _instance = None
+
     def __new__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            instance = super().__new__(cls)
-            cls._instances[cls] = instance
-            cls._initialize()
-        return cls._instances[cls]
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False  # __init__ 중복 실행 방지 플래그
+        return cls._instance
 
     def __init__(self):
+        if self._initialized:
+            return  # 이미 초기화된 경우는 __init__ 다시 실행 안 함
+
         self.conn = None
         self.cur = None
 
         self.logger = self.get_logger()
         self.config = self.get_config()
+
+        self.mysql_connect()
+
+        self._initialized = True  # 초기화 완료 표시
 
     def mysql_connect(self):
         self.logger.info('Connecting mysql database')

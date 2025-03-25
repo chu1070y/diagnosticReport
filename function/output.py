@@ -35,8 +35,6 @@ class Output(Common):
         else:
             dataframe = df  # 이미 DataFrame인 경우
 
-        db_work.db_close()
-
         return dataframe
 
     def create_excel(self, dataframe):
