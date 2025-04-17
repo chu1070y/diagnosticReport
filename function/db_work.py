@@ -83,7 +83,7 @@ class DBwork(Common):
         if len(calculate_params_list) != 0:
             columns += calculate_params_list
 
-        column_definitions = [f"`{column}` double(10,2)" for column in columns]
+        column_definitions = [f"`{column}` decimal(20,2)" for column in columns]
         column_definitions_str = ",\n  ".join(column_definitions)
         create_table_sql = f"""
         CREATE TABLE `{self.db_name}`.`{table_name}` (
