@@ -31,9 +31,10 @@ class Main(Common):
         self.logger.info('################## Create database & status table on mysql')
 
         db_work = DBwork()
-        db_work.create_status_table(status_filelist)
+        db_work.create_status_table(status_filelist) # DB 생성하므로 무조건 첫번째로 실행
         db_work.create_os_table()
         db_work.create_graph_table()
+        # db_work.create_variable_table()
 
         ##################################### 3. 파일 파싱 및 데이터 insert
         self.logger.info("################## Starting parsing & insert --- global status")
@@ -83,7 +84,7 @@ class Main(Common):
         ##################################### 6. 샘플 word 파일 데이터 채워넣기
         self.logger.info("################## Input data to word file")
 
-        MSword().make_report()
+        MSword().make_report_v2()
 
         ##################################### 999. connection 종료
         db_work.db_close()

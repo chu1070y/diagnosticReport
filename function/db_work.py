@@ -16,6 +16,19 @@ class DBwork(Common):
         self.db_name = self.report_conf['db_name']
 
         self.status_columns = None
+        self.variable_columns = None
+
+    def create_variable_table(self):
+        table_name = self.report_conf['variable_table_name']
+
+        ########################################### 기존 테이블 삭제
+        sql = f'drop table if exists {self.db_name}.{table_name}'
+
+        self.db.mysql_execute(sql)
+        self.db.mysql_commit()
+
+        ########################################### variable 파일 읽어서 컬럼 추출
+        self.variable_columns = self.parser.get_columns('')
 
     def create_status_table(self, file_list: list):
         table_name = self.report_conf['status_table_name']
