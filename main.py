@@ -34,11 +34,12 @@ class Main(Common):
         db_work.create_status_table(status_filelist) # DB 생성하므로 무조건 첫번째로 실행
         db_work.create_os_table()
         db_work.create_graph_table()
-        # db_work.create_variable_table()
+        db_work.create_variable_table()
 
         ##################################### 3. 파일 파싱 및 데이터 insert
-        self.logger.info("################## Starting parsing & insert --- global status")
 
+        ##################
+        self.logger.info("################## Starting parsing & insert --- global status")
         batch_size = 100
         batch_list = list()
         batch_count = 0
@@ -52,8 +53,9 @@ class Main(Common):
                 batch_count += len(batch_list)
                 self.logger.info(f"Insert global status total count : {batch_count}")
                 batch_list = list()
-
         self.logger.info("Completed parsing & insert --- global status")
+
+        ##################
 
         self.logger.info("Starting parsing & insert --- os info")
         memory_data = parser.parse_mysql_memory_used(memory_filelist)
@@ -61,12 +63,19 @@ class Main(Common):
 
         timestamps = sorted(set(memory_data.keys()) | set(datasize_data.keys()))
         merged_list = [{'id': ts,
-                        'MySQL_memory_used': float(memory_data.get(ts)),
-                        'MySQL_data_size': float(datasize_data.get(ts))} for ts in timestamps]
+                        'MySQL_memory_used': memory_data.get(ts),
+                        'MySQL_data_size': datasize_data.get(ts)} for ts in timestamps]
 
         db_work.insert_os_info(merged_list)
-
         self.logger.info("Completed parsing & insert --- os info")
+
+        ##################
+
+        self.logger.info("Starting parsing & insert --- global variables info")
+        db_work.insert_global_variables()
+        self.logger.info("Completed parsing & insert --- global variables info")
+
+        ##################
 
         ##################################### 4. 데이터 가공
         self.logger.info("################## Let's calculate a graph data")

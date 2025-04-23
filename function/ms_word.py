@@ -1,8 +1,7 @@
 import re
 
-
-
 from function.db_work import DBwork
+from function.parser import Parser
 from module.common import Common
 
 from docx import Document
@@ -159,6 +158,8 @@ class MSword(Common):
         self.graph_folder = './result/graphs/'
         # self.image_extensions = [".png", ".jpg", ".jpeg"]
 
+        self.parser = Parser()
+
     @Common.exception_handler
     def make_report(self):
         # 설정값 + 상태값 + 그래프 삽입
@@ -287,12 +288,9 @@ class MSword(Common):
             'default_storage_engine', 'port', 'socket', 'basedir', 'datadir'
         ]
 
-        os_info_dict = self.get_os_info()
-        variables_data = parse_table_to_dict(os_info_dict.get('global variables'))
-
         try:
-            os_info_dict = self.get_os_info()
-            variables_data = parse_table_to_dict(os_info_dict.get('global variables'))
+            os_info_dict = self.parser.parse_osinfo(self.os_info_path)
+            variables_data = self.parser.parse_table_to_dict(os_info_dict.get('global variables'))
 
             os_info_data['hostname'] = os_info_dict.get('hostname')
             os_info_data['OS Version'] = os_info_dict.get('OS Version').split('\n')[0]

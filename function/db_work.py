@@ -27,8 +27,19 @@ class DBwork(Common):
         self.db.mysql_execute(sql)
         self.db.mysql_commit()
 
-        ########################################### variable 파일 읽어서 컬럼 추출
-        self.variable_columns = self.parser.get_columns('')
+        ########################################### 테이블 생성
+        create_table_sql = f"""
+        CREATE TABLE `{self.db_name}`.`{table_name}` (
+          name varchar(100) primary key,
+          val text
+        );
+        """
+
+        self.logger.info(f'Create `{table_name}` table on mysql')
+
+        self.db.mysql_execute(create_table_sql)
+        self.db.mysql_commit()
+
 
     def create_status_table(self, file_list: list):
         table_name = self.report_conf['status_table_name']
@@ -124,6 +135,23 @@ class DBwork(Common):
         self.db.mysql_executemany(insert_sql, statuslist)
         self.db.mysql_commit()
 
+    def insert_global_variables(self):
+        table_name = self.report_conf['variable_table_name']
+
+        ########################################### variable 파일 읽어서 컬럼 추출
+        osinfo_file = self.get_config()['path'].get('os_info_file')
+        global_variables = self.parser.parse_osinfo(osinfo_file)['global variables']
+        dict_data = self.parser.parse_table_to_dict(global_variables)
+
+        self.logger.info(f'Count global variables parameter: {len(dict_data)}')
+
+        insert_sql = f"INSERT INTO {self.db_name}.{table_name} (name, val) VALUES (%s, %s)"
+
+        data_to_insert = list(dict_data.items())
+
+        self.db.mysql_executemany(insert_sql, data_to_insert)
+        self.db.mysql_commit()
+
     def insert_os_info(self, values):
         table_name = self.report_conf['os_table_name']
 
@@ -189,3 +217,8 @@ class DBwork(Common):
     def db_close(self):
         self.db.mysql_close()
 
+
+if __name__ == "__main__":
+    db = DBwork()
+    db.create_variable_table()
+    db.insert_global_variables()

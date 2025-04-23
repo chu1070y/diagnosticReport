@@ -88,6 +88,40 @@ class Parser(Common):
 
         return datasize_data
 
+    def parse_osinfo(self, file_path):
+        session_data = {}
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+
+            sections = re.split(r"=+\s*(.+?)\s*=+\n", content)
+            session_data = {sections[i].strip(): sections[i + 1].strip() for i in range(1, len(sections) - 1, 2)}
+        except Exception as e:
+            self.logger.error(f"Error parsing or reading file {file_path}: {e}")
+
+        return session_data
+
+    @staticmethod
+    def parse_table_to_dict(table_str):
+        lines = table_str.strip().split("\n")  # 문자열을 줄 단위로 나눔
+        data_dict = {}
+
+        for line in lines:
+            line = line.strip()
+
+            # 구분선 제거
+            if line.startswith("+") or line.startswith("| Variable_name"):
+                continue
+
+            # 정규 표현식을 사용하여 컬럼 데이터 추출
+            match = re.match(r"\|\s*(.*?)\s*\|\s*(.*?)\s*\|", line)
+            if match:
+                key, value = match.groups()
+                data_dict[key.strip()] = value.strip()
+
+        return data_dict
+
 
 if __name__ == "__main__":
     parser = Parser()
