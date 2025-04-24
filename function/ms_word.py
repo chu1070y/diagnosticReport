@@ -1,4 +1,5 @@
 import re
+import pandas as pd
 
 from function.db_work import DBwork
 from function.parser import Parser
@@ -146,37 +147,59 @@ def make_table_variables_info(report, paragraph, variables_data):
         set_cell_font(row_cells[1])
 
 
-def make_table_count(report, paragraph, data: list):
-    table = report.add_table(rows=1, cols=2)
-    table.style = 'Table Grid'
-    table.autofit = False
-    paragraph._element.addnext(table._element)
+def make_table_count(report, paragraph, data: list, header=[], use_column=[]):
+    if use_column:
+        data = [
+            tuple(val for val, use in zip(row, use_column) if use == 1)
+            for row in data
+        ]
 
-    # 헤더
-    table.cell(0, 0).text = ""
-    table.cell(0, 0).paragraphs[0].add_run('User')
-    table.cell(0, 1).text = ""
-    table.cell(0, 1).paragraphs[0].add_run('Host')
+    header = header if header else data[0]
+    data = data[1:]
 
-    set_cell_shading(table.cell(0, 0), "D9E1F2")
-    set_cell_shading(table.cell(0, 1), "D9E1F2")
+    df = pd.DataFrame(data, columns=header)
+    grouped = df.groupby(header[0])
 
-    set_cell_font(table.cell(0, 0), bold=True, center=True)
-    set_cell_font(table.cell(0, 1), bold=True, center=True)
+    current = paragraph._element
 
-    # 2행부터 데이터 추가
-    # for users in data[1:]:
-    #     row_cells = table.add_row().cells  # 새로운 행 추가
-    #
-    #     row_cells[0].paragraphs[0].add_run(users[0])
-    #     row_cells[1].paragraphs[0].add_run(str(value))
-    #
-    #     # 줄무늬 스타일 (홀수 행은 회색, 짝수 행은 흰색)
-    #     set_cell_shading(row_cells[0], "F2F2F2")
-    #
-    #     # 폰트 스타일
-    #     set_cell_font(row_cells[0])
-    #     set_cell_font(row_cells[1])
+    for schema, group in grouped:
+        table = report.add_table(rows=1, cols=len(header))
+        table.style = 'Table Grid'
+        table.autofit = False
+        current.addnext(table._element)
+
+        # 헤더
+        for i in range(len(header)):
+            cell = table.rows[0].cells[i]
+
+            cell.text = header[i]
+            set_cell_shading(cell, "D9E1F2")
+            set_cell_font(cell, bold=True, center=True, font_size=8)
+
+        # 데이터
+        for _, row in group.iterrows():
+            cells = table.add_row().cells
+
+            for i in range(len(header)):
+                cells[i].text = str(row[header[i]])
+                set_cell_font(cells[i], center=True, font_size=8)
+
+        # 첫 번째 컬럼 병합
+        row_count = len(group)
+        if row_count > 1:
+            start_cell = table.cell(1, 0)
+            end_cell = table.cell(row_count, 0)
+            start_cell.merge(end_cell)
+
+            table.cell(1, 0).text = schema
+            set_cell_font(table.cell(1, 0), center=True, font_size=8)
+
+        next_para = report.add_paragraph()
+        next_para.add_run("")
+
+        current = table._element
+        current.addnext(next_para._element)
+        current = next_para._element
 
 
 class MSword(Common):
@@ -418,10 +441,10 @@ class MSword(Common):
                         make_table_variables_info(report, paragraph, variables_data)
 
                     elif word == '{_table_schema_table}':
-                        pass
+                        make_table_count(report, paragraph, schema_table_data, use_column=[1,1,1], header=['스키마 이름', '테이블 이름', '크기 (GB)'])
 
                     elif word == '{_table_engine_table}':
-                        pass
+                        make_table_count(report, paragraph, engine_table_data, use_column=[1,1,1], header=['스키마 이름', '스토리지 엔진', '개수'])
 
                     elif word == '{_table_unused_user}':
                         self.make_table_auto(report, paragraph, unused_user_data)
