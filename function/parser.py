@@ -97,6 +97,22 @@ class Parser(Common):
 
             sections = re.split(r"=+\s*(.+?)\s*=+\n", content)
             session_data = {sections[i].strip(): sections[i + 1].strip() for i in range(1, len(sections) - 1, 2)}
+
+        except Exception as e:
+            self.logger.error(f"Error parsing or reading file {file_path}: {e}")
+
+        return session_data
+
+    def parse_dbinfo(self, file_path):
+        session_data = {}
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+
+            sections = re.split(r"=+\s*(.+?)\s*=+\n", content)
+            session_data = {sections[i].strip(): sections[i + 1].strip() for i in range(1, len(sections) - 1, 2)}
+
         except Exception as e:
             self.logger.error(f"Error parsing or reading file {file_path}: {e}")
 
@@ -121,6 +137,18 @@ class Parser(Common):
                 data_dict[key.strip()] = value.strip()
 
         return data_dict
+
+    @staticmethod
+    def parse_table_to_list(table_str, separator='\t'):
+        lines = table_str.split("\n")  # 문자열을 줄 단위로 나눔
+        data_list = []
+
+        for line in lines:
+            line = line.split(separator)
+
+            data_list.append(tuple(line))
+
+        return data_list
 
 
 if __name__ == "__main__":

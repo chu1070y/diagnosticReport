@@ -28,12 +28,12 @@ def find_table_after_heading(doc, heading_text):
     return None
 
 
-def set_cell_font(cell, bold=False, first=False, center=False):
+def set_cell_font(cell, bold=False, center=False, font_size=8):
     """ 셀의 폰트를 설정하는 함수 """
     for paragraph in cell.paragraphs:
         for run in paragraph.runs:
             run.font.name = 'Malgun Gothic'
-            run.font.size = Pt(8)
+            run.font.size = Pt(font_size)
             run.font.bold = bold
         paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER if center else WD_PARAGRAPH_ALIGNMENT.LEFT
     cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
@@ -113,7 +113,13 @@ def parse_cpu_info(cpu_text):
     return f"{model_name} ({total_physical_cores} Physical Cores / {total_logical_cores} Logical Cores)"
 
 
-def make_table_variables_info(report, paragraph, variables_data):
+def make_table_count(report, paragraph, data, use_column=[]):
+    if use_column:
+        data = [
+            tuple(val for val, use in zip(row, use_column) if use == 1)
+            for row in data
+        ]
+
     table = report.add_table(rows=1, cols=2)
     table.style = 'Table Grid'
     table.autofit = False
@@ -128,7 +134,7 @@ def make_table_variables_info(report, paragraph, variables_data):
     set_cell_shading(table.cell(0, 0), "D9E1F2")
     set_cell_shading(table.cell(0, 1), "D9E1F2")
 
-    set_cell_font(table.cell(0, 0), bold=True, first=True, center=True)
+    set_cell_font(table.cell(0, 0), bold=True, center=True)
     set_cell_font(table.cell(0, 1), bold=True, center=True)
 
     # 2행부터 데이터 추가
@@ -154,6 +160,7 @@ class MSword(Common):
         self.sample_report_path = './sample/sample_diagnostic_report_v1.3.docx'
         self.report_path = './result/diagnostic_report.docx'
         self.os_info_path = self.get_config()['path'].get('os_info_file')
+        self.db_info_path = self.get_config()['path'].get('db_info_file')
 
         self.graph_folder = './result/graphs/'
         # self.image_extensions = [".png", ".jpg", ".jpeg"]
@@ -267,19 +274,17 @@ class MSword(Common):
 
     @Common.exception_handler
     def make_report_v2(self):
-        # ################### test
-        # self.sample_report_path = '../sample/sample_diagnostic_report_v1.3.docx'
-        # self.report_path = './result/diagnostic_report.docx'
-        # self.os_info_path = self.get_config()['path'].get('os_info_file')
-        # self.graph_folder = './result/graphs/'
-        # ###############################
+        ################### test
+        self.sample_report_path = '../sample/sample_diagnostic_report_v1.3.docx'
+        self.report_path = './result/diagnostic_report.docx'
+        self.os_info_path = self.get_config()['path'].get('os_info_file')
+        self.graph_folder = './result/graphs/'
+        ###############################
 
         # 설정값 + 상태값 + 그래프 삽입
         self.logger.info("input status and graph on diagnostic report")
         db = DBwork()
         status_data = db.get_latest_status_data()
-        os_info_data = dict()
-        variables_data = dict()
 
         # 왼쪽 정렬 파라미터 리스트 (여기 없으면 모두 가운데 정렬)
         left_aligned_param_list = [
@@ -287,6 +292,11 @@ class MSword(Common):
             'log_error', 'slow_query_log_file', 'log_bin_basename', 'innodb_data_file_path',
             'default_storage_engine', 'port', 'socket', 'basedir', 'datadir'
         ]
+
+        ############## OS info
+        os_info_data = dict()
+
+        variables_data = dict()
 
         try:
             os_info_dict = self.parser.parse_osinfo(self.os_info_path)
@@ -300,6 +310,38 @@ class MSword(Common):
 
         except Exception as e:
             self.logger.warning("An error occurred while parsing the OS info file...")
+            self.logger.warning(e)
+
+        ############## DB info
+        db_info_dict = dict()
+
+        schema_table_data = []
+        engine_table_data = []
+        unused_user_data = []
+        unused_index_data = []
+        duplicate_index_data = []
+        low_cardinality_index_data = []
+        no_update_tables_data = []
+        fullscan_sql_data = []
+        temptable_sql_data = []
+        unconstrained_tables_data = []
+
+        try:
+            db_info_dict = self.parser.parse_dbinfo(self.db_info_path)
+
+            schema_table_data = self.parser.parse_table_to_list(db_info_dict.get('3.5.5.2 스키마별 테이블 사이즈'))
+            engine_table_data = self.parser.parse_table_to_list(db_info_dict.get('3.5.5.3 스토리지 엔진별 테이블 개수'))
+            unused_user_data = self.parser.parse_table_to_list(db_info_dict.get('5.1 미사용DB계정 확인'))
+            unused_index_data = self.parser.parse_table_to_list(db_info_dict.get('5.2.1 미사용 인덱스'))
+            duplicate_index_data = self.parser.parse_table_to_list(db_info_dict.get('5.2.2 중복 인덱스'))
+            low_cardinality_index_data = self.parser.parse_table_to_list(db_info_dict.get('5.2.3 분포도 낮은 인덱스'))
+            no_update_tables_data = self.parser.parse_table_to_list(db_info_dict.get('5.3 변경 없는 테이블 진단'))
+            fullscan_sql_data = self.parser.parse_table_to_list(db_info_dict.get('5.4.1 Full Table Scan SQL'))
+            temptable_sql_data = self.parser.parse_table_to_list(db_info_dict.get('5.4.2 임시테이블 사용 SQL'))
+            unconstrained_tables_data = self.parser.parse_table_to_list(db_info_dict.get('5.5 PK/UK 누락 테이블'))
+
+        except Exception as e:
+            self.logger.warning("An error occurred while parsing the DB info file...")
             self.logger.warning(e)
 
         all_data = {**status_data, **os_info_data, **variables_data}
@@ -344,9 +386,39 @@ class MSword(Common):
                 elif word.startswith("{_table_") and word.endswith("}"):
                     paragraph.clear()
 
-                    ### [표 생성] 3.3. Variables 정보
-                    if word == '{_table_variables_info}':
-                        make_table_variables_info(report, paragraph, variables_data)
+                    ### [표 생성] 로직
+                    if word == '{_table_schema_table}':
+                        make_table_count(report, paragraph, schema_table_data)
+
+                    elif word == '{_table_engine_table}':
+                        make_table_count(report, paragraph, engine_table_data)
+
+                    elif word == '{_table_variables_info}':
+                        self.make_table_auto(report, paragraph, variables_data)
+
+                    elif word == '{_table_unused_user}':
+                        self.make_table_auto(report, paragraph, unused_user_data)
+
+                    elif word == '{_table_unused_index}':
+                        self.make_table_auto(report, paragraph, unused_index_data, header=['스키마 이름', '테이블 이름', '인덱스 이름'])
+
+                    elif word == '{_table_duplicate_index}':
+                        self.make_table_auto(report, paragraph, duplicate_index_data, header=['스키마 이름', '테이블 이름', 'redundant index', 'redundant index column', 'dominanat index', 'dominant index column'])
+
+                    elif word == '{_table_low_cardinality_index}':
+                        self.make_table_auto(report, paragraph, low_cardinality_index_data, use_column=[1,1,1,1,0,0,0,0,1], header=['스키마 이름', '테이블 이름', '인덱스 이름', '컬럼 이름', '분포도율(%)'])
+
+                    elif word == '{_table_no_update_tables}':
+                        self.make_table_auto(report, paragraph, no_update_tables_data, header=['스키마 이름', '테이블 이름', '레코드 수', 'Count_read', 'Count_write'])
+
+                    elif word == '{_table_fullscan_sql}':
+                        self.make_table_auto(report, paragraph, fullscan_sql_data, use_column=[1,1,0,0,0,0,0], header=['스키마 이름', 'SQL'])
+
+                    elif word == '{_table_temptable_sql}':
+                        self.make_table_auto(report, paragraph, temptable_sql_data, use_column=[1,1,0,0,0], header=['스키마 이름', 'SQL'])
+
+                    elif word == '{_table_unconstrained_tables}':
+                        self.make_table_auto(report, paragraph, unconstrained_tables_data, header=['스키마 이름', '테이블 이름'])
 
         # 수정된 문서 저장
         report.save(self.report_path)
@@ -386,6 +458,36 @@ class MSword(Common):
         session_data = {sections[i].strip(): sections[i + 1].strip() for i in range(1, len(sections) - 1, 2)}
 
         return session_data
+
+    @staticmethod
+    @Common.exception_handler
+    def make_table_auto(report, paragraph, data: list, use_column=[], header=[]):
+        if use_column:
+            data = [
+                tuple(val for val, use in zip(row, use_column) if use == 1)
+                for row in data
+            ]
+
+        table = report.add_table(rows=len(data), cols=len(data[0]))
+        table.style = 'Table Grid'
+        table.autofit = False
+        paragraph._element.addnext(table._element)
+
+        for row_idx, row_data in enumerate(data):
+            for col_idx, value in enumerate(row_data):
+
+                cell = table.cell(row_idx, col_idx)
+                cell.text = str(value)
+
+                if row_idx == 0:
+                    if header:
+                        cell.text = header[col_idx]
+
+                    set_cell_shading(cell, "D9E1F2")
+                    set_cell_font(cell, bold=True, center=True, font_size=8)
+
+                else:
+                    set_cell_font(cell, font_size=8)
 
 
 if __name__ == "__main__":
