@@ -113,13 +113,7 @@ def parse_cpu_info(cpu_text):
     return f"{model_name} ({total_physical_cores} Physical Cores / {total_logical_cores} Logical Cores)"
 
 
-def make_table_count(report, paragraph, data, use_column=[]):
-    if use_column:
-        data = [
-            tuple(val for val, use in zip(row, use_column) if use == 1)
-            for row in data
-        ]
-
+def make_table_variables_info(report, paragraph, variables_data):
     table = report.add_table(rows=1, cols=2)
     table.style = 'Table Grid'
     table.autofit = False
@@ -150,6 +144,39 @@ def make_table_count(report, paragraph, data, use_column=[]):
         # 폰트 스타일
         set_cell_font(row_cells[0])
         set_cell_font(row_cells[1])
+
+
+def make_table_count(report, paragraph, data: list):
+    table = report.add_table(rows=1, cols=2)
+    table.style = 'Table Grid'
+    table.autofit = False
+    paragraph._element.addnext(table._element)
+
+    # 헤더
+    table.cell(0, 0).text = ""
+    table.cell(0, 0).paragraphs[0].add_run('User')
+    table.cell(0, 1).text = ""
+    table.cell(0, 1).paragraphs[0].add_run('Host')
+
+    set_cell_shading(table.cell(0, 0), "D9E1F2")
+    set_cell_shading(table.cell(0, 1), "D9E1F2")
+
+    set_cell_font(table.cell(0, 0), bold=True, center=True)
+    set_cell_font(table.cell(0, 1), bold=True, center=True)
+
+    # 2행부터 데이터 추가
+    # for users in data[1:]:
+    #     row_cells = table.add_row().cells  # 새로운 행 추가
+    #
+    #     row_cells[0].paragraphs[0].add_run(users[0])
+    #     row_cells[1].paragraphs[0].add_run(str(value))
+    #
+    #     # 줄무늬 스타일 (홀수 행은 회색, 짝수 행은 흰색)
+    #     set_cell_shading(row_cells[0], "F2F2F2")
+    #
+    #     # 폰트 스타일
+    #     set_cell_font(row_cells[0])
+    #     set_cell_font(row_cells[1])
 
 
 class MSword(Common):
@@ -387,14 +414,14 @@ class MSword(Common):
                     paragraph.clear()
 
                     ### [표 생성] 로직
-                    if word == '{_table_schema_table}':
-                        make_table_count(report, paragraph, schema_table_data)
+                    if word == '{_table_variables_info}':
+                        make_table_variables_info(report, paragraph, variables_data)
+
+                    elif word == '{_table_schema_table}':
+                        pass
 
                     elif word == '{_table_engine_table}':
-                        make_table_count(report, paragraph, engine_table_data)
-
-                    elif word == '{_table_variables_info}':
-                        self.make_table_auto(report, paragraph, variables_data)
+                        pass
 
                     elif word == '{_table_unused_user}':
                         self.make_table_auto(report, paragraph, unused_user_data)
