@@ -47,7 +47,7 @@ class Main(Common):
         for status_file in status_filelist:
             batch_list.append({'id': re.search(r'(\d+)$', status_file).group(1), **parser.parse_status(status_file)})
 
-            if len(batch_list) >= batch_size:
+            if len(batch_list) >= batch_size or status_file == status_filelist[-1]:
                 db_work.insert_status(batch_list)
 
                 batch_count += len(batch_list)
