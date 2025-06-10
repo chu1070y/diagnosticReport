@@ -9,3 +9,6 @@ calculate_params = {
     'Tmp_disk_rate': 'Created_tmp_disk_tables/(Created_tmp_disk_tables+Created_tmp_tables) * 100',
     'Qps': 'Questions/Uptime'
 }
+
+
+
